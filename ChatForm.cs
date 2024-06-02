@@ -188,14 +188,7 @@ namespace FakeQQ
                 text_message.Text = textBox_content;
                 text_message.BackColor = Color.White;
                 text_message.BorderStyle = BorderStyle.None;
-                if (flag)
-                {
-                    text_message.Location = new Point(init_location.X+50, init_location.Y + 5);
-                }
-                else
-                {
-                    text_message.Location = new Point(init_location.X - text_message.Width - 20, init_location.Y + 5);
-                }
+                set_location(text_message);
                 text_message.ContentsResized += Message_ContentsResized;
                 text_message.ReadOnly = true;
 				// 发送消息
@@ -211,14 +204,7 @@ namespace FakeQQ
 				PictureBox image_message= (PictureBox)message;
                 image_message.Image = Clipboard.GetImage();
                 image_message.SizeMode=PictureBoxSizeMode.AutoSize;
-                if (flag)
-                {
-                    image_message.Location = new Point(init_location.X + 50, init_location.Y + 5);
-                }
-                else
-                {
-                    image_message.Location = new Point(init_location.X - image_message.Width - 20, init_location.Y + 5);
-                }
+                set_location(image_message);
                 init_location.Y += image_message.Height + 20;
                 if (init_location.Y > messageArea.Height)
                 {
@@ -230,14 +216,7 @@ namespace FakeQQ
                 RichTextBox document_message = (RichTextBox)message;
                 document_message.Width = 50;
                 document_message.BorderStyle = BorderStyle.None;
-                if (flag)
-                {
-                    document_message.Location = new Point(init_location.X + 50, init_location.Y + 5);
-                }
-                else
-                {
-                    document_message.Location = new Point(init_location.X - document_message.Width - 20, init_location.Y + 5);
-                }
+                set_location(document_message);
                 document_message.ContentsResized += Message_ContentsResized;
                 document_message.Paste();
             }
@@ -247,20 +226,24 @@ namespace FakeQQ
                 qq_emoji_message.ImageLocation = qqEmojiURL;
                 qq_emoji_message.Size = new Size(100,100);
                 qq_emoji_message.SizeMode = PictureBoxSizeMode.StretchImage;
-                if (flag)
-                {
-                    qq_emoji_message.Location = new Point(init_location.X + 50, init_location.Y + 5);
-                }
-                else
-                {
-                    qq_emoji_message.Location = new Point(init_location.X - qq_emoji_message.Width - 20, init_location.Y + 5);
-                }
+                set_location(qq_emoji_message);
                 init_location.Y += qq_emoji_message.Height+20;
                 if (init_location.Y > messageArea.Height)
                 {
                     init_location.Y=messageArea.Height+20;
                 }
             }  
+        }
+        private void set_location(Control message)
+        {
+            if (flag)
+            {
+                message.Location = new Point(init_location.X + 50, init_location.Y + 5);
+            }
+            else
+            {
+                message.Location = new Point(init_location.X - message.Width - 20, init_location.Y + 5);
+            }
         }
         
         private void Message_ContentsResized(object sender, ContentsResizedEventArgs e)
