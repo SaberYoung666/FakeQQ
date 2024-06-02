@@ -17,7 +17,8 @@ namespace FakeQQ
         private String qqEmojiURL;//qq表情链接
         private String imageURL;
         private Boolean is_changed = false;//判断用户输入是否改变
-        private Boolean is_checkd = false;
+        private Boolean is_checkd = false;//判断用户是否发送消息
+        private Boolean flag = false;//判断该消息是用户发送还是接收
         private String textBox_content;//文本框的值
         private Point init_location = new Point(0, 0);//初始位置
         private int click_count = 1;//消息发送次数
@@ -127,11 +128,19 @@ namespace FakeQQ
 		// 动态添加聊天框
 		private void btn_send_Click(object sender, EventArgs e)
         {
-            is_checkd = true; 
+            is_checkd = true;
+            flag= false;
             if (click_count == 1)
             {
+                if (flag)
+                {
+                    init_location = new Point(20, 20);
+                }
+                else
+                {
+                    init_location = new Point(this.Width - 50, 20);
+                }
                 // 头像位置
-                init_location = new Point(this.Width - 50, 20);
             }
             if (type == btn_type.text || type == btn_type.document)
             {
@@ -180,8 +189,8 @@ namespace FakeQQ
                 text_message.Text = textBox_content;
                 text_message.BackColor = Color.White;
                 text_message.BorderStyle = BorderStyle.None;
+                set_location(text_message);
                 text_message.ContentsResized += Message_ContentsResized;
-                message.Location = new Point(init_location.X - text_message.Width-20, init_location.Y + 5);
                 text_message.ReadOnly = true;
 				// 发送消息
 				string str = textBox_content;
@@ -196,7 +205,7 @@ namespace FakeQQ
 				PictureBox image_message= (PictureBox)message;
                 image_message.Image = Clipboard.GetImage();
                 image_message.SizeMode=PictureBoxSizeMode.AutoSize;
-                image_message.Location = new Point(init_location.X - image_message.Width - 20, init_location.Y + 5);
+                set_location(image_message);
                 init_location.Y += image_message.Height + 20;
                 if (init_location.Y > messageArea.Height)
                 {
@@ -208,7 +217,7 @@ namespace FakeQQ
                 RichTextBox document_message = (RichTextBox)message;
                 document_message.Width = 50;
                 document_message.BorderStyle = BorderStyle.None;
-                document_message.Location = new Point(init_location.X - document_message.Width - 20, init_location.Y + 5);
+                set_location(document_message);
                 document_message.ContentsResized += Message_ContentsResized;
                 document_message.Paste();
             }
@@ -218,13 +227,24 @@ namespace FakeQQ
                 qq_emoji_message.ImageLocation = qqEmojiURL;
                 qq_emoji_message.Size = new Size(100,100);
                 qq_emoji_message.SizeMode = PictureBoxSizeMode.StretchImage;
-                qq_emoji_message.Location = new Point(init_location.X - qq_emoji_message.Width - 20, init_location.Y + 5);
+                set_location(qq_emoji_message);
                 init_location.Y += qq_emoji_message.Height+20;
                 if (init_location.Y > messageArea.Height)
                 {
                     init_location.Y=messageArea.Height+20;
                 }
             }  
+        }
+        private void set_location(Control message)
+        {
+            if (flag)
+            {
+                message.Location = new Point(init_location.X + 50, init_location.Y + 5);
+            }
+            else
+            {
+                message.Location = new Point(init_location.X - message.Width - 20, init_location.Y + 5);
+            }
         }
         
         private void Message_ContentsResized(object sender, ContentsResizedEventArgs e)
@@ -332,6 +352,19 @@ namespace FakeQQ
                 thread.SetApartmentState(ApartmentState.STA); //重点
                 thread.Start();
             }
+        }
+
+        private void addReciveMessage(String reciveMessage)
+        {
+            PictureBox userAvatar = new PictureBox();
+            RichTextBox recive_message= new RichTextBox();
+            recive_message.Text= reciveMessage;
+            set_userAvatar(userAvatar, init_location);
+            set_message(recive_message, init_location);
+            messageArea.Controls.Add(recive_message);
+            messageArea.Controls.Add(userAvatar);
+            messageArea.ScrollControlIntoView(userAvatar);
+            messageArea.ScrollControlIntoView(recive_message);
         }
 
         private void Dialog()
