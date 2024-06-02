@@ -181,7 +181,6 @@ namespace FakeQQ
                 Thread thread = new Thread(new ParameterizedThreadStart(messageDialog));
 				thread.SetApartmentState(ApartmentState.STA);
                 thread.Start(image_message);
-
                 image_message.SizeMode=PictureBoxSizeMode.AutoSize;
                 image_message.Location = new Point(init_location.X - image_message.Width - 20, init_location.Y + 5);
                 init_location.Y += image_message.Height + 20;
@@ -325,7 +324,7 @@ namespace FakeQQ
                 }
                 if (is_checkd == true)
                 {
-
+                    Dialog();
                 }
             }
             else if(type == btn_type.document)
