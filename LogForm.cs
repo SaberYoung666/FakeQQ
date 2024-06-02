@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Drawing;
+using System.Net.Sockets;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Forms;
 using FakeQQ.RoundedCorners;
 using MySql.Data.MySqlClient;
+using System.Security.Principal;
 
 namespace FakeQQ
 {
@@ -17,6 +21,9 @@ namespace FakeQQ
 		// 合法数据的正则表达式
 		private string legalUsername = @"^[\u4e00-\u9fa5a-zA-Z0-9]{1,20}$";
 		private string legalPassword = @"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,20}$";
+		// 创建套接字
+		Socket clientSocket = null;
+		Thread clientThread = null;
 
 		public LogForm()
 		{
@@ -37,6 +44,8 @@ namespace FakeQQ
 			DrawRoundedCorners();
 			// 设置文本框提示信息
 			SetTextBoxCue();
+			// 连接服务器
+			LinkServer();
 		}
 
 		// 设置文本框提示信息
@@ -103,7 +112,6 @@ namespace FakeQQ
 			LogUpClosePicture.BackgroundImage = Properties.Resources.CloseFocus;
 			LogUpClosePicture.BackColor = Color.IndianRed;
 		}
-
 		private void ClosePicture_MouseLeave(object sender, EventArgs e)
 		{
 			LogInClosePicture.BackgroundImage = Properties.Resources.Close;
@@ -140,6 +148,97 @@ namespace FakeQQ
 			string t2 = BitConverter.ToString(md5.ComputeHash(Encoding.Default.GetBytes(password)), 4, 8);
 			t2 = t2.Replace("-", "");
 			return t2;
+		}
+
+		// 连接到服务器
+		private void LinkServer()
+		{
+			// 创建客户端套接字
+			clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			// 设置IP地址
+			IPAddress address = IPAddress.Parse("127.0.0.1");
+			// 设置IP地址和端口号
+			IPEndPoint endPoint = new IPEndPoint(address, 8088);
+			try
+			{
+				// 与服务器建立连接
+				clientSocket.Connect(endPoint);
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show("连接失败：" + ex.Message, "友情提示");
+				return;
+			}
+			// 接收或发送消息 使用线程来实现
+			clientThread = new Thread(ReceiveMsg);
+			// 开启后台线程
+			clientThread.IsBackground = true; 
+			clientThread.Start();
+		}
+		// 客户端接收消息
+		private void ReceiveMsg()
+		{
+			while (true)
+			{
+				byte[] recBuffer = new byte[1024 * 1024 * 2];// 声明最大字符内存
+				int length = -1; // 字节长度
+				try
+				{
+					length = clientSocket.Receive(recBuffer);// 返回接收到的实际的字节数量
+				}
+				catch (SocketException ex)
+				{
+					break;
+				}
+				catch (Exception ex)
+				{
+					MessageBox.Show("与服务器断开连接");
+					break;
+				}
+				// 解析消息
+				if (length > 0)
+				{
+					// 转译字符串(字符串，开始的索引，字符串长度)
+					string originMsg = Encoding.Default.GetString(recBuffer, 0, length);
+					string[] sArray = originMsg.Split(new char[2] { '[', ']' });
+					string mark = sArray[1];
+					string msg = sArray[2];
+					switch (mark)
+					{
+						case "LISC":
+							this.Invoke(new Action(() =>
+							{
+								this.Hide();
+							}));
+							ListForm listForm = new ListForm(msg, clientSocket);
+							listForm.ShowDialog();
+							break;
+						case "LIER":
+							MessageBox.Show("账号或密码错误，请重新输入。", "登录失败");
+							break;
+						case "LUSC":
+							// 展示账号
+							MessageBox.Show("您的QQ号是：" + msg + ",请牢记", "注册成功");
+							// 展示登录用到的控件
+							this.Invoke(new Action(() =>
+							{
+								LogInPanel.Visible = true;
+								SetTextBoxCue();
+								LogUpUsernameTextBox.Clear();
+								UsernameIndicatorPictureBox.Visible = false;
+								LogUpPasswordTextBox.Clear();
+								PasswordIndicatorPictureBox.Visible = false;
+								LogUpCheckPasswordTextBox.Clear();
+								CheckPasswordIndicatorPictureBox.Visible = false;
+								LogUpPhoneTextBox.Clear();
+								ActiveControl = null;
+							}));
+							break;
+						default:
+							break;
+					}
+				}
+			}
 		}
 
 		// 登录逻辑
@@ -190,40 +289,15 @@ namespace FakeQQ
 				LogInButton.Enabled = true;
 			}
 		}
-		// 在数据库中做登录判断
+		// 向服务器请求做登录判断
 		private void LoginButton_Click(object sender, EventArgs e)
 		{
 			string account = AccountTextBox.Text;
 			string password = PasswordTextBox.Text;
-			string queryPassword = "";
 			string encryptedPassword = MD5Encrypt64(password);
 
-			Connect connect = new Connect();
-			connect.load();
-			string checkPasswordSql = "select * from user where account = " + account + ";";
-			connect.comm = new MySqlCommand(checkPasswordSql, connect.conn);
-			connect.dr = connect.comm.ExecuteReader();
-			if (connect.dr.Read())
-			{
-				queryPassword = connect.dr.GetString("password");
-				connect.dr.Close();
-			}
-
-			if (encryptedPassword == queryPassword)
-			{
-				string updateStatusSql = "update user set online_status = 1 where account = " + account + ";";
-				connect.comm = new MySqlCommand(updateStatusSql, connect.conn);
-				connect.dr = connect.comm.ExecuteReader();
-				connect.dr.Read();
-				connect.dr.Close();
-				this.Hide();
-				ListForm listForm = new ListForm();
-				listForm.ShowDialog();
-			}
-			else
-			{
-				MessageBox.Show("账号或密码错误，请重新输入。","登录失败");
-			}
+			byte[] accountBuffer = Encoding.Default.GetBytes("[LIAC]" + account + "[LIPW]" + encryptedPassword);
+			clientSocket.Send(accountBuffer);
 		}
 
 		// 注册逻辑
@@ -310,54 +384,19 @@ namespace FakeQQ
 				LogUpCheckPasswordTextBox.Cue = "两次输入密码应相同";
 			}
 		}
+		// 向服务器请求做注册判断
 		private void LogUpButton_Click(object sender, EventArgs e)
 		{
 			string username = LogUpUsernameTextBox.Text;
 			string password = LogUpPasswordTextBox.Text;
 			string phone = LogUpPhoneTextBox.Text;
-			string userId = "";
 			// 对密码做加密处理
 			string encryptedPassword = MD5Encrypt64(password);
 
-			Connect connect = new Connect();
-			connect.load();
-			// 生成账号
-			string getIdSql = "SELECT users_id FROM user_id ORDER BY RAND() LIMIT 1;";
-			connect.comm = new MySqlCommand(getIdSql, connect.conn);
-			connect.dr = connect.comm.ExecuteReader();
-			connect.dr.Read();
-			userId = connect.dr.GetString("users_id");
-			MessageBox.Show("userId = " + userId);
-			connect.dr.Close();
-			// 将数据录入数据库
-			string setIdSql = "INSERT INTO `user` ( account, username, `password`, phone_number ) VALUES ( '" + userId + "', '" + username + "', '" + encryptedPassword + "', " + phone + " );";
-			connect.comm = new MySqlCommand(setIdSql, connect.conn);
-			connect.dr = connect.comm. ExecuteReader();
-			connect.dr.Read();
-			connect.dr.Close();
-			// 删除账号池中的账号
-			/*string deleteIdSql = "DELETE FROM user_id WHERE users_id = " + userId + ";";
-			connect.comm = new MySqlCommand(deleteIdSql, connect.conn);
-			connect.dr = connect.comm.ExecuteReader();
-			connect.dr.Read();
-			connect.dr.Close();*/
-			// 展示账号
-			MessageBox.Show("您的QQ号是：" + userId + ",请牢记", "注册成功");
-			// 展示登录用到的控件
-			LogInPanel.Visible = true;
-			SetTextBoxCue();
-			LogUpUsernameTextBox.Clear();
-			UsernameIndicatorPictureBox.Visible = false;
-			LogUpPasswordTextBox.Clear();
-			PasswordIndicatorPictureBox.Visible = false;
-			LogUpCheckPasswordTextBox.Clear();
-			CheckPasswordIndicatorPictureBox.Visible = false;
-			LogUpPhoneTextBox.Clear();
-			ActiveControl = null;
-
-			//TODO :防止sql注入
-			//TODO :重写提示框
-			//TODO :加入socket
+			byte[] accountBuffer = Encoding.Default.GetBytes("[LUUN]" + username + "[LUPW]" + encryptedPassword + "[LUPH]" + phone);
+			clientSocket.Send(accountBuffer);
 		}
+		//TODO :防止sql注入
+		//TODO :重写提示框
 	}
 }

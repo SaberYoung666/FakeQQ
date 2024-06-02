@@ -171,8 +171,6 @@
         }
 
         #endregion
-
-        private System.Windows.Forms.PictureBox avatar;
         private System.Windows.Forms.Label userName;
         private System.Windows.Forms.Label signature;
         private System.Windows.Forms.ImageList imageList1;

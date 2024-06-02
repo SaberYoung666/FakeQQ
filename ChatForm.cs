@@ -22,9 +22,17 @@ namespace FakeQQ
 		Socket clientSocket = null;
 		Thread clientThread = null;
 
-		public ChatForm()
+        public ChatForm()
         {
             InitializeComponent();
+        }
+
+		public ChatForm(string sendAccount, string receiveAccount, Socket clientSocket)
+        {
+            InitializeComponent();
+            this.sendAccount = sendAccount;
+            this.receiveAccount = receiveAccount;
+            this.clientSocket = clientSocket;
         }
 
         private void ChatForm_Load(object sender, EventArgs e)
@@ -43,13 +51,61 @@ namespace FakeQQ
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情9.jpg");
         }
 
+        // 关闭按钮
         private void btn_close_Click(object sender, EventArgs e)
         {
             this.Close();
         }
+		private void picture_close_Click(object sender, EventArgs e)
+		{
+			this.Close();
+		}
+		private void picture_minus_Click(object sender, EventArgs e)
+		{
+			this.WindowState = FormWindowState.Minimized;
+		}
+		private void picture_minus_MouseMove(object sender, MouseEventArgs e)
+		{
+			picture_minus.BackColor = Color.Red;
+		}
+		private void picture_minus_MouseLeave(object sender, EventArgs e)
+		{
+			picture_minus.BackColor = Color.Transparent;
+		}
+		private void picture_close_MouseMove(object sender, MouseEventArgs e)
+		{
+			picture_close.BackColor = Color.Red;
+		}
+		private void picture_close_MouseLeave(object sender, EventArgs e)
+		{
+			picture_close.BackColor = Color.Transparent;
+		}
 
-        // 发送消息
-        private void btn_send_Click(object sender, EventArgs e)
+		// 窗体移动
+		private void navigation_bar_MouseDown(object sender, MouseEventArgs e)
+		{
+			if (e.Button == MouseButtons.Left)
+			{
+				mousepoint = e.Location;
+				leftflag = true;
+			}
+		}
+		private void navigation_bar_MouseMove(object sender, MouseEventArgs e)
+		{
+			if (leftflag)
+			{
+				Left = MousePosition.X - mousepoint.X;
+				Top = MousePosition.Y - mousepoint.Y;
+			}
+		}
+		private void navigation_bar_MouseUp(object sender, MouseEventArgs e)
+		{
+			leftflag = false;
+		}
+
+		// 发送消息
+		// 动态添加聊天框
+		private void btn_send_Click(object sender, EventArgs e)
         {
             if (click_count == 1)
             {
@@ -83,7 +139,8 @@ namespace FakeQQ
             richTextBox_content.Controls.Clear();
             richTextBox_content.Focus();
             type = btn_type.text;
-        }//动态添加聊天框
+        }
+        // 设置头像框属性
         private void set_userAvatar(PictureBox userAvatar,Point location)
         {
             userAvatar.Size = new Size(30, 30);
@@ -107,7 +164,7 @@ namespace FakeQQ
                 text_message.ReadOnly = true;
 				// 发送消息
 				string str = textBox_content;
-				byte[] buffer = Encoding.Default.GetBytes(str);
+                byte[] buffer = Encoding.Default.GetBytes(str);
 				clientSocket.Send(buffer);
                 MessageBox.Show(textBox_content, "客户端发送消息");
 			}
@@ -150,15 +207,14 @@ namespace FakeQQ
 
         private void Message_ContentsResized(object sender, ContentsResizedEventArgs e)
         {
-            RichTextBox message= sender as RichTextBox;
-            message.Height=e.NewRectangle.Height;
-            init_location.Y+=message.Height;
+            RichTextBox message = sender as RichTextBox;
+            message.Height = e.NewRectangle.Height;
+            init_location.Y += message.Height;
             if (init_location.Y > messageArea.Height)
             {
-                init_location.Y =messageArea.Height+20;
+                init_location.Y = messageArea.Height + 20;
             }
         }
-
         private void richTextBox_content_TextChanged(object sender, EventArgs e)
         {
             textBox_content = richTextBox_content.Text;
@@ -230,12 +286,7 @@ namespace FakeQQ
         }//如果左键标志为真则移动窗体，且移动的位置为当前鼠标位置减去按下左键时第一个鼠标位置
        
 
-        private void navigation_bar_MouseUp(object sender, MouseEventArgs e)
-        {
-            leftflag= false;
-        }//如果左键松开就不移动
-        private enum btn_type {text,document,emoji,image }//枚举按钮类型
-        btn_type type = btn_type.text;
+        // 发送文件
         private void picture_doc_Click(object sender, EventArgs e)
         {
             type= btn_type.document;
@@ -253,6 +304,7 @@ namespace FakeQQ
             }
         }
 
+        // 发送表情包
         private void picture_emoji_Click(object sender, EventArgs e)
         {
             type= btn_type.emoji;
@@ -288,6 +340,7 @@ namespace FakeQQ
             QQEmojiArea.Visible = false;
         }
 
+        // 发送图片
         private void picture_image_Click(object sender, EventArgs e)
         {
             type = btn_type.image;
