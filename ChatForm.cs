@@ -15,14 +15,22 @@ namespace FakeQQ
         List<string> qqEmojiList= new List<string>();//qq表情列表
         private String qqEmojiURL;//qq表情链接
         private Boolean is_changed = false;//判断用户输入是否改变
+        private Boolean is_checkd = false;
         private String textBox_content;//文本框的值
         private Point init_location = new Point(0, 0);//初始位置
         private int click_count = 1;//消息发送次数
+        private enum btn_type
+        {
+            text, emoji, image, document
+        }
+        btn_type type = btn_type.text;  
 		// 创建套接字
 		Socket clientSocket = null;
 		Thread clientThread = null;
+		private Point mousepoint;
+		private Boolean leftflag = false;
 
-        public ChatForm()
+		public ChatForm()
         {
             InitializeComponent();
         }
@@ -30,8 +38,6 @@ namespace FakeQQ
 		public ChatForm(string sendAccount, string receiveAccount, Socket clientSocket)
         {
             InitializeComponent();
-            this.sendAccount = sendAccount;
-            this.receiveAccount = receiveAccount;
             this.clientSocket = clientSocket;
         }
 
@@ -107,6 +113,7 @@ namespace FakeQQ
 		// 动态添加聊天框
 		private void btn_send_Click(object sender, EventArgs e)
         {
+            is_checkd = true; 
             if (click_count == 1)
             {
                 // 头像位置
@@ -170,8 +177,11 @@ namespace FakeQQ
 			}
             else if (type == btn_type.image)
             {
-                PictureBox image_message= (PictureBox)message;
-                image_message.Image = Clipboard.GetImage();
+				PictureBox image_message= (PictureBox)message;
+                Thread thread = new Thread(new ParameterizedThreadStart(messageDialog));
+				thread.SetApartmentState(ApartmentState.STA);
+                thread.Start(image_message);
+
                 image_message.SizeMode=PictureBoxSizeMode.AutoSize;
                 image_message.Location = new Point(init_location.X - image_message.Width - 20, init_location.Y + 5);
                 init_location.Y += image_message.Height + 20;
@@ -203,6 +213,10 @@ namespace FakeQQ
                 }
             }  
         }
+        private void messageDialog(object image_message)
+        {
+            
+        }
 
 
         private void Message_ContentsResized(object sender, ContentsResizedEventArgs e)
@@ -217,6 +231,7 @@ namespace FakeQQ
         }
         private void richTextBox_content_TextChanged(object sender, EventArgs e)
         {
+            is_checkd = false;
             textBox_content = richTextBox_content.Text;
             if (textBox_content=="")
             {
@@ -230,78 +245,19 @@ namespace FakeQQ
         }
         private void richTextBox_content_ControlAdded(object sender, ControlEventArgs e)
         {
+            is_checkd= false;
             is_changed= true;
             btn_send.Enabled = true;
         }
-        private void picture_close_Click(object sender, EventArgs e)
-        {
-            this.Close();  
-        }
-
-        private void picture_minus_Click(object sender, EventArgs e)
-        {
-            this.WindowState = FormWindowState.Minimized;
-        }
-
-        private void picture_minus_MouseMove(object sender, MouseEventArgs e)
-        {
-            picture_minus.BackColor= Color.Red;
-        }
-
-        private void picture_minus_MouseLeave(object sender, EventArgs e)
-        {
-            picture_minus.BackColor= Color.Transparent;
-        }
-
-        private void picture_close_MouseMove(object sender, MouseEventArgs e)
-        {
-            picture_close.BackColor= Color.Red;
-        }
-
-        private void picture_close_MouseLeave(object sender, EventArgs e)
-        {
-            picture_close.BackColor= Color.Transparent;
-        }
-        private Point mousepoint;
-        private Boolean leftflag = false;
-        //设置全局变量，用于记录鼠标位置和左键判断标志
-       
-
-        private void navigation_bar_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                mousepoint = e.Location;
-                leftflag = true;
-            }
-        }//  首先记下按下左键时的第一个鼠标位置
-
-        private void navigation_bar_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (leftflag)
-            {
-                Left = MousePosition.X - mousepoint.X;
-                Top = MousePosition.Y - mousepoint.Y;
-            }
-        }//如果左键标志为真则移动窗体，且移动的位置为当前鼠标位置减去按下左键时第一个鼠标位置
-       
 
         // 发送文件
         private void picture_doc_Click(object sender, EventArgs e)
         {
             type= btn_type.document;
-            OpenFileDialog openDocumentDialog = new OpenFileDialog();
-            openDocumentDialog.Filter = "文本文件(*.txt)|*.txt|所有文件(*.*)|*.*";
-            openDocumentDialog.Multiselect = false;//关闭多选
-            if (openDocumentDialog.ShowDialog() == DialogResult.OK)
-            {
-                MessageBox.Show(openDocumentDialog.FileName);
-                Clipboard.Clear();   //清空剪贴板
-                System.Collections.Specialized.StringCollection files = new System.Collections.Specialized.StringCollection();
-                files.Add(openDocumentDialog.FileName);
-                Clipboard.SetFileDropList(files);
-                richTextBox_content.Paste();   //将剪贴板中的对象粘贴到对话框里
-            }
+			Thread thread = new Thread(new ThreadStart(Dialog));
+			thread.SetApartmentState(ApartmentState.MTA); //重点
+			thread.Start();
+			
         }
 
         // 发送表情包
@@ -343,19 +299,51 @@ namespace FakeQQ
         // 发送图片
         private void picture_image_Click(object sender, EventArgs e)
         {
-            type = btn_type.image;
-            OpenFileDialog openImageFileDialog=new OpenFileDialog();
-            openImageFileDialog.Filter = "图片文件|*.jpg|BMP图片|*.bmp|Gif图片|*.gif";
-            openImageFileDialog.Multiselect = false;
-            if (openImageFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                MessageBox.Show(openImageFileDialog.FileName);
-                Clipboard.Clear();   //清空剪贴板
-                Bitmap bmp = new Bitmap(openImageFileDialog.FileName);  //创建Bitmap类对象
-                Clipboard.SetImage(bmp);  //将Bitmap类对象写入剪贴板
-                richTextBox_content.Paste();   //将剪贴板中的对象粘贴到对话框里
-            }
+			type = btn_type.image;
+			Thread thread = new Thread(new ThreadStart(Dialog));
+			thread.SetApartmentState(ApartmentState.STA); //重点
+			thread.Start();
         }
+
+        private void Dialog()
+        {
+            if (type == btn_type.image)
+            {
+                OpenFileDialog openImageFileDialog = new OpenFileDialog();
+                openImageFileDialog.Filter = "图片文件|*.jpg|BMP图片|*.bmp|Gif图片|*.gif";
+                openImageFileDialog.Multiselect = false;
+                if (openImageFileDialog.ShowDialog() == DialogResult.OK)
+                {
+                    MessageBox.Show(openImageFileDialog.FileName);
+                    Clipboard.Clear();   //清空剪贴板
+                    Bitmap bmp = new Bitmap(openImageFileDialog.FileName);  //创建Bitmap类对象
+                    Clipboard.SetImage(bmp);  //将Bitmap类对象写入剪贴板
+                    this.Invoke(new Action(() =>
+                    {
+                        richTextBox_content.Paste();   //将剪贴板中的对象粘贴到对话框里
+                    }));
+                }
+                if (is_checkd == true)
+                {
+
+                }
+            }
+            else if(type == btn_type.document)
+            {
+				OpenFileDialog openDocumentDialog = new OpenFileDialog();
+				openDocumentDialog.Filter = "文本文件(*.txt)|*.txt|所有文件(*.*)|*.*";
+				openDocumentDialog.Multiselect = false;//关闭多选
+				if (openDocumentDialog.ShowDialog() == DialogResult.OK)
+				{
+					MessageBox.Show(openDocumentDialog.FileName);
+					Clipboard.Clear();   //清空剪贴板
+					System.Collections.Specialized.StringCollection files = new System.Collections.Specialized.StringCollection();
+					files.Add(openDocumentDialog.FileName);
+					Clipboard.SetFileDropList(files);
+					richTextBox_content.Paste();   //将剪贴板中的对象粘贴到对话框里
+				}
+			}
+		}
 
 		//连接服务器
 		private void ConnectServer()
