@@ -210,7 +210,9 @@ namespace FakeQQ
 							{
 								this.Hide();
 							}));
-							ListForm listForm = new ListForm(msg, clientSocket);
+							string account = msg;
+							string name = sArray[4];
+							ListForm listForm = new ListForm(msg, name, clientSocket);
 							listForm.ShowDialog();
 							break;
 						case "LIER":

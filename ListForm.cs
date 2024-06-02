@@ -23,6 +23,7 @@ namespace FakeQQ
 		List<Friends> friendsList = new List<Friends>();
         // 当前用户的qq号
         string sendAccount = "";
+        string name = "";
         // 连接服务器的套接字
 		Socket clientSocket = null;
 		Thread clientThread = null;
@@ -35,15 +36,17 @@ namespace FakeQQ
             InitializeComponent();
         }
 
-        public ListForm(string account, Socket clientSocket)
+        public ListForm(string account, string name, Socket clientSocket)
         {
             InitializeComponent();
             this.sendAccount = account;
             this.clientSocket = clientSocket;
+            this.name = name;
         }
 
         private void ListForm_Load(object sender, EventArgs e)
         {
+            userName.Text = name;
 			Point panel_location = new Point(0, 0);
 			// 开启后台socket线程
 			clientThread = new Thread(ReceiveMsg);
@@ -77,11 +80,17 @@ namespace FakeQQ
                 Panel panel = new Panel();
 				OvalPictureBox pictureBox = new OvalPictureBox();
 				Label label = new Label();
+                Label accountLabel = new Label();
+
+                accountLabel.Visible = false;
+                accountLabel.Text = friendsList[i].account;
                 set_panel(panel,panel_location);
 				set_pictureBox(pictureBox, pictureBox_location, i);
 				set_label(label, label_location, i);
+
 				panel.Controls.Add(pictureBox);
 				panel.Controls.Add(label);
+                panel.Controls.Add(accountLabel);
                 panel_friendslist.Controls.Add(panel);
 			}
 		}
@@ -114,7 +123,25 @@ namespace FakeQQ
         }
         private void Panel_DoubleClick(object sender, EventArgs e)
         {
-            ChatForm chatForm = new ChatForm();
+            string receiveAccount = "";
+            string receiveUsername = "";
+            if (sender is Panel)
+            {
+                receiveAccount = (sender as Panel).Controls[2].Text;
+                receiveUsername = (sender as Panel).Controls[1].Text;
+			}
+            else if (sender is PictureBox)
+            {
+				receiveAccount = (sender as PictureBox).Parent.Controls[2].Text;
+				receiveUsername = (sender as PictureBox).Parent.Controls[1].Text;
+			}
+            else
+            {
+				receiveAccount = (sender as Label).Parent.Controls[2].Text;
+                receiveUsername = (sender as Label).Text;
+			}
+
+            ChatForm chatForm = new ChatForm(sendAccount, receiveAccount, receiveUsername, clientSocket);
             chatForm.Show();
         }
 

@@ -83,7 +83,7 @@
 			this.picture_qqicon.BackColor = System.Drawing.Color.Transparent;
 			this.picture_qqicon.Image = global::FakeQQ.Properties.Resources.iconqq;
 			this.picture_qqicon.Location = new System.Drawing.Point(9, 19);
-			this.picture_qqicon.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+			this.picture_qqicon.Margin = new System.Windows.Forms.Padding(2);
 			this.picture_qqicon.Name = "picture_qqicon";
 			this.picture_qqicon.Size = new System.Drawing.Size(19, 20);
 			this.picture_qqicon.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -95,7 +95,7 @@
 			this.picture_minus.BackColor = System.Drawing.Color.Transparent;
 			this.picture_minus.Image = global::FakeQQ.Properties.Resources.minus;
 			this.picture_minus.Location = new System.Drawing.Point(219, 19);
-			this.picture_minus.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+			this.picture_minus.Margin = new System.Windows.Forms.Padding(2);
 			this.picture_minus.Name = "picture_minus";
 			this.picture_minus.Size = new System.Drawing.Size(19, 20);
 			this.picture_minus.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -110,7 +110,7 @@
 			this.picture_close.BackColor = System.Drawing.Color.Transparent;
 			this.picture_close.Image = global::FakeQQ.Properties.Resources.listclose;
 			this.picture_close.Location = new System.Drawing.Point(250, 19);
-			this.picture_close.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+			this.picture_close.Margin = new System.Windows.Forms.Padding(2);
 			this.picture_close.Name = "picture_close";
 			this.picture_close.Size = new System.Drawing.Size(19, 20);
 			this.picture_close.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
@@ -126,7 +126,7 @@
 			this.panel_friendslist.BackColor = System.Drawing.Color.Transparent;
 			this.panel_friendslist.Dock = System.Windows.Forms.DockStyle.Bottom;
 			this.panel_friendslist.Location = new System.Drawing.Point(0, 134);
-			this.panel_friendslist.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+			this.panel_friendslist.Margin = new System.Windows.Forms.Padding(2);
 			this.panel_friendslist.Name = "panel_friendslist";
 			this.panel_friendslist.Size = new System.Drawing.Size(300, 386);
 			this.panel_friendslist.TabIndex = 7;
@@ -157,7 +157,8 @@
 			this.Controls.Add(this.signature);
 			this.Controls.Add(this.userName);
 			this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
-			this.Margin = new System.Windows.Forms.Padding(2, 2, 2, 2);
+			this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+			this.Margin = new System.Windows.Forms.Padding(2);
 			this.Name = "ListForm";
 			this.Text = "ListForm";
 			this.Load += new System.EventHandler(this.ListForm_Load);
