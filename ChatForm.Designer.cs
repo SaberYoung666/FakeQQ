@@ -54,6 +54,7 @@
             // navigation_bar
             // 
             this.navigation_bar.AutoScroll = true;
+            this.navigation_bar.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(255)))), ((int)(((byte)(255)))), ((int)(((byte)(192)))));
             this.navigation_bar.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.navigation_bar.Controls.Add(this.picture_close);
             this.navigation_bar.Controls.Add(this.picture_minus);
@@ -105,6 +106,7 @@
             // 
             // menu
             // 
+            this.menu.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(242)))), ((int)(((byte)(242)))), ((int)(((byte)(242)))));
             this.menu.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.menu.Controls.Add(this.picture_image);
             this.menu.Controls.Add(this.picture_doc);
@@ -176,7 +178,7 @@
             // 
             // richTextBox_content
             // 
-            this.richTextBox_content.BackColor = System.Drawing.SystemColors.Control;
+            this.richTextBox_content.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(242)))), ((int)(((byte)(242)))), ((int)(((byte)(242)))));
             this.richTextBox_content.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.richTextBox_content.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.richTextBox_content.EnableAutoDragDrop = true;
@@ -191,6 +193,8 @@
             // messageArea
             // 
             this.messageArea.AutoScroll = true;
+            this.messageArea.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(242)))), ((int)(((byte)(242)))), ((int)(((byte)(242)))));
+            this.messageArea.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.messageArea.Controls.Add(this.QQEmojiArea);
             this.messageArea.Dock = System.Windows.Forms.DockStyle.Fill;
             this.messageArea.Location = new System.Drawing.Point(0, 48);
@@ -212,6 +216,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Stretch;
             this.ClientSize = new System.Drawing.Size(914, 663);
             this.Controls.Add(this.messageArea);
             this.Controls.Add(this.menu);

@@ -16,7 +16,7 @@ namespace FakeQQ
 		{
 			Application.EnableVisualStyles();
 			Application.SetCompatibleTextRenderingDefault(false);
-			Application.Run(new LogForm());
+			Application.Run(new ChatForm());
 		}
 	}
 }

@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using System.Collections.Generic;
+using System.Drawing.Drawing2D;
 
 namespace FakeQQ
 {
@@ -14,6 +15,7 @@ namespace FakeQQ
     {
         List<string> qqEmojiList= new List<string>();//qq表情列表
         private String qqEmojiURL;//qq表情链接
+        private String imageURL;
         private Boolean is_changed = false;//判断用户输入是否改变
         private Boolean is_checkd = false;
         private String textBox_content;//文本框的值
@@ -55,6 +57,7 @@ namespace FakeQQ
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情7.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情8.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情9.jpg");
+     
         }
 
         // 关闭按钮
@@ -178,9 +181,7 @@ namespace FakeQQ
             else if (type == btn_type.image)
             {
 				PictureBox image_message= (PictureBox)message;
-                Thread thread = new Thread(new ParameterizedThreadStart(messageDialog));
-				thread.SetApartmentState(ApartmentState.STA);
-                thread.Start(image_message);
+                image_message.Image = Clipboard.GetImage();
                 image_message.SizeMode=PictureBoxSizeMode.AutoSize;
                 image_message.Location = new Point(init_location.X - image_message.Width - 20, init_location.Y + 5);
                 init_location.Y += image_message.Height + 20;
@@ -212,12 +213,7 @@ namespace FakeQQ
                 }
             }  
         }
-        private void messageDialog(object image_message)
-        {
-            
-        }
-
-
+        
         private void Message_ContentsResized(object sender, ContentsResizedEventArgs e)
         {
             RichTextBox message = sender as RichTextBox;
@@ -253,10 +249,21 @@ namespace FakeQQ
         private void picture_doc_Click(object sender, EventArgs e)
         {
             type= btn_type.document;
-			Thread thread = new Thread(new ThreadStart(Dialog));
-			thread.SetApartmentState(ApartmentState.MTA); //重点
-			thread.Start();
-			
+            OpenFileDialog openDocumentDialog = new OpenFileDialog();
+            openDocumentDialog.Filter = "文本文件(*.txt)|*.txt|所有文件(*.*)|*.*";
+            openDocumentDialog.Multiselect = false;//关闭多选
+            if (openDocumentDialog.ShowDialog() == DialogResult.OK)
+            {
+                MessageBox.Show(openDocumentDialog.FileName);
+                Clipboard.Clear();   //清空剪贴板
+                System.Collections.Specialized.StringCollection files = new System.Collections.Specialized.StringCollection();
+                files.Add(openDocumentDialog.FileName);
+                Clipboard.SetFileDropList(files);
+                Thread thread = new Thread(new ThreadStart(Dialog));
+                thread.SetApartmentState(ApartmentState.STA); //重点
+                thread.Start();
+                
+            }    
         }
 
         // 发送表情包
@@ -299,50 +306,28 @@ namespace FakeQQ
         private void picture_image_Click(object sender, EventArgs e)
         {
 			type = btn_type.image;
-			Thread thread = new Thread(new ThreadStart(Dialog));
-			thread.SetApartmentState(ApartmentState.STA); //重点
-			thread.Start();
+            OpenFileDialog openImageFileDialog = new OpenFileDialog();
+            openImageFileDialog.Filter = "图片文件|*.jpg|BMP图片|*.bmp|Gif图片|*.gif";
+            openImageFileDialog.Multiselect = false;
+            if (openImageFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                MessageBox.Show(openImageFileDialog.FileName);
+                Clipboard.Clear();   //清空剪贴板
+                Bitmap bmp = new Bitmap(openImageFileDialog.FileName);  //创建Bitmap类对象
+                Clipboard.SetImage(bmp);  //将Bitmap类对象写入剪贴板
+                Thread thread = new Thread(new ThreadStart(Dialog));
+                thread.SetApartmentState(ApartmentState.STA); //重点
+                thread.Start();
+            }
         }
 
         private void Dialog()
         {
-            if (type == btn_type.image)
+            this.Invoke(new Action(() =>
             {
-                OpenFileDialog openImageFileDialog = new OpenFileDialog();
-                openImageFileDialog.Filter = "图片文件|*.jpg|BMP图片|*.bmp|Gif图片|*.gif";
-                openImageFileDialog.Multiselect = false;
-                if (openImageFileDialog.ShowDialog() == DialogResult.OK)
-                {
-                    MessageBox.Show(openImageFileDialog.FileName);
-                    Clipboard.Clear();   //清空剪贴板
-                    Bitmap bmp = new Bitmap(openImageFileDialog.FileName);  //创建Bitmap类对象
-                    Clipboard.SetImage(bmp);  //将Bitmap类对象写入剪贴板
-                    this.Invoke(new Action(() =>
-                    {
-                        richTextBox_content.Paste();   //将剪贴板中的对象粘贴到对话框里
-                    }));
-                }
-                if (is_checkd == true)
-                {
-                    Dialog();
-                }
-            }
-            else if(type == btn_type.document)
-            {
-				OpenFileDialog openDocumentDialog = new OpenFileDialog();
-				openDocumentDialog.Filter = "文本文件(*.txt)|*.txt|所有文件(*.*)|*.*";
-				openDocumentDialog.Multiselect = false;//关闭多选
-				if (openDocumentDialog.ShowDialog() == DialogResult.OK)
-				{
-					MessageBox.Show(openDocumentDialog.FileName);
-					Clipboard.Clear();   //清空剪贴板
-					System.Collections.Specialized.StringCollection files = new System.Collections.Specialized.StringCollection();
-					files.Add(openDocumentDialog.FileName);
-					Clipboard.SetFileDropList(files);
-					richTextBox_content.Paste();   //将剪贴板中的对象粘贴到对话框里
-				}
-			}
-		}
+                richTextBox_content.Paste();   //将剪贴板中的对象粘贴到对话框里
+            }));
+        }
 
 		//连接服务器
 		private void ConnectServer()
@@ -399,6 +384,6 @@ namespace FakeQQ
 			}
 		}
 
-        
+
     }
 }
