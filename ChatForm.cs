@@ -31,6 +31,8 @@ namespace FakeQQ
 		Thread clientThread = null;
 		private Point mousepoint;
 		private Boolean leftflag = false;
+        List<Friends> friendsList = new List<Friends>();
+        int friendNumber = 0;
 
         // 接收传入的参数 
         private string sendAccount = "";
@@ -57,7 +59,6 @@ namespace FakeQQ
 
             QQEmojiArea.Parent = this;
             QQEmojiArea.BringToFront();
-            ConnectServer();
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情1.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情2.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情3.jpg");
@@ -186,7 +187,7 @@ namespace FakeQQ
 				string str = textBox_content;
                 if (!string.IsNullOrEmpty(str))
                 {
-                    byte[] buffer = Encoding.Default.GetBytes("[SDAC]" + sendAccount + "[RCAC]" + receiveAccount + "[SDMG]" + str);
+                    byte[] buffer = Encoding.Default.GetBytes("[SDMG]" + str + "[SDAC]" + sendAccount + "[REAC]" + receiveAccount);
 				    clientSocket.Send(buffer);
                 }
 			}
@@ -341,30 +342,6 @@ namespace FakeQQ
             }));
         }
 
-		//连接服务器
-		private void ConnectServer()
-		{
-			// 创建客户端套接字
-			clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			// 设置IP地址
-			IPAddress address = IPAddress.Parse("127.0.1");
-			// 设置IP地址和端口号
-			IPEndPoint endPoint = new IPEndPoint(address, 8088);
-			try
-			{
-				// 与服务器建立连接
-				clientSocket.Connect(endPoint);
-			}
-			catch (Exception ex)
-			{
-				MessageBox.Show("连接失败：" + ex.Message, "友情提示");
-				return;
-			}
-			// 接收或发送消息 使用线程来实现
-			clientThread = new Thread(ReceiveMsg);
-			clientThread.IsBackground = true; //开启后台线程
-			clientThread.Start();
-		}
         // 客户端接收消息
 		private void ReceiveMsg()
 		{
@@ -385,12 +362,32 @@ namespace FakeQQ
                     MessageBox.Show("与服务器断开连接");
 					break;
 				}
-				//接收到消息
+				// 接收到消息
 				if (length > 0)
 				{
-					string msg = Encoding.Default.GetString(recBuffer, 0, length);//转译字符串(字符串，开始的索引，字符串长度)
-					string str = $"{DateTime.Now}【接收】{msg}{Environment.NewLine}";//接收的时间，内容，换行
-                    MessageBox.Show(str, "接收到的消息");
+					string originMsg = Encoding.Default.GetString(recBuffer, 0, length);
+					string[] sArray = originMsg.Split(new char[2] { '[', ']' });
+					string mark = sArray[1];
+					string msg = sArray[2];
+					switch (mark)
+					{
+						case "REMG":
+				            
+							break;
+						case "FLAC":
+							string account = sArray[2];
+							string username = sArray[4];
+							string onlineStatus = sArray[6];
+							friendsList.Add(new Friends(account, username, Properties.Resources.logo, Convert.ToBoolean(onlineStatus)));
+							if (friendsList.Count != friendNumber)
+							{
+								byte[] beginBuffer = Encoding.Default.GetBytes("[FLNT]" + friendsList.Count);
+								clientSocket.Send(beginBuffer);
+							}
+							break;
+						default:
+							break;
+					}
 				}
 			}
 		}
