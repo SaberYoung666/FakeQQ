@@ -32,19 +32,29 @@ namespace FakeQQ
 		private Point mousepoint;
 		private Boolean leftflag = false;
 
+        // 接收传入的参数 
+        private string sendAccount = "";
+        private string receiveAccount = "";
+        private string receiveUsername = "";
+
 		public ChatForm()
         {
             InitializeComponent();
         }
 
-		public ChatForm(string sendAccount, string receiveAccount, Socket clientSocket)
+		public ChatForm(string sendAccount, string receiveAccount, string receiveUsername, Socket clientSocket)
         {
             InitializeComponent();
             this.clientSocket = clientSocket;
+            this.sendAccount = sendAccount;
+            this.receiveAccount = receiveAccount;
+            this.receiveUsername = receiveUsername;
         }
 
         private void ChatForm_Load(object sender, EventArgs e)
         {
+            username.Text = receiveUsername;
+
             QQEmojiArea.Parent = this;
             QQEmojiArea.BringToFront();
             ConnectServer();
@@ -174,9 +184,11 @@ namespace FakeQQ
                 text_message.ReadOnly = true;
 				// 发送消息
 				string str = textBox_content;
-                byte[] buffer = Encoding.Default.GetBytes(str);
-				clientSocket.Send(buffer);
-                MessageBox.Show(textBox_content, "客户端发送消息");
+                if (!string.IsNullOrEmpty(str))
+                {
+                    byte[] buffer = Encoding.Default.GetBytes("[SDAC]" + sendAccount + "[RCAC]" + receiveAccount + "[SDMG]" + str);
+				    clientSocket.Send(buffer);
+                }
 			}
             else if (type == btn_type.image)
             {
@@ -342,7 +354,6 @@ namespace FakeQQ
 			{
 				// 与服务器建立连接
 				clientSocket.Connect(endPoint);
-                MessageBox.Show("成功连接到服务器");
 			}
 			catch (Exception ex)
 			{
