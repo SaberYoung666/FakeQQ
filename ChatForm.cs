@@ -11,31 +11,101 @@ namespace FakeQQ
 {
     public partial class ChatForm : Form
     {
-        private Boolean is_changed = false;//判断用户输入是否改变
-        private String textBox_content;//文本框的值
-        private Point init_location = new Point(0, 0);//初始位置
-        private int click_count = 1;//消息发送次数
+        // 判断用户输入是否改变
+        private Boolean is_changed = false;
+        // 文本框的值
+        private String textBox_content;
+        // 初始位置
+        private Point init_location = new Point(0, 0);
+        // 消息发送次数
+        private int click_count = 1;
+        // 设置全局变量，用于记录鼠标位置和左键判断标志
+		private Point mousepoint;
+		private Boolean leftflag = false;
+        // 枚举按钮类型
+		private enum btn_type { text, document, emoji, image }
+		btn_type type = btn_type.text;
+        // 当前用户QQ号
+        string sendAccount = "";
+        // 目标用户QQ号
+        string receiveAccount = "";
 		// 创建套接字
 		Socket clientSocket = null;
 		Thread clientThread = null;
 
-		public ChatForm()
+        public ChatForm()
         {
             InitializeComponent();
         }
 
-        private void ChatForm_Load(object sender, EventArgs e)
+		public ChatForm(string sendAccount, string receiveAccount, Socket clientSocket)
         {
-            ConnectServer();
+            InitializeComponent();
+            this.sendAccount = sendAccount;
+            this.receiveAccount = receiveAccount;
+            this.clientSocket = clientSocket;
         }
 
+        private void ChatForm_Load(object sender, EventArgs e)
+        {
+            LinkServer();
+        }
+
+        // 关闭按钮
         private void btn_close_Click(object sender, EventArgs e)
         {
             this.Close();
         }
+		private void picture_close_Click(object sender, EventArgs e)
+		{
+			this.Close();
+		}
+		private void picture_minus_Click(object sender, EventArgs e)
+		{
+			this.WindowState = FormWindowState.Minimized;
+		}
+		private void picture_minus_MouseMove(object sender, MouseEventArgs e)
+		{
+			picture_minus.BackColor = Color.Red;
+		}
+		private void picture_minus_MouseLeave(object sender, EventArgs e)
+		{
+			picture_minus.BackColor = Color.Transparent;
+		}
+		private void picture_close_MouseMove(object sender, MouseEventArgs e)
+		{
+			picture_close.BackColor = Color.Red;
+		}
+		private void picture_close_MouseLeave(object sender, EventArgs e)
+		{
+			picture_close.BackColor = Color.Transparent;
+		}
 
-        // 发送消息
-        private void btn_send_Click(object sender, EventArgs e)
+		// 窗体移动
+		private void navigation_bar_MouseDown(object sender, MouseEventArgs e)
+		{
+			if (e.Button == MouseButtons.Left)
+			{
+				mousepoint = e.Location;
+				leftflag = true;
+			}
+		}
+		private void navigation_bar_MouseMove(object sender, MouseEventArgs e)
+		{
+			if (leftflag)
+			{
+				Left = MousePosition.X - mousepoint.X;
+				Top = MousePosition.Y - mousepoint.Y;
+			}
+		}
+		private void navigation_bar_MouseUp(object sender, MouseEventArgs e)
+		{
+			leftflag = false;
+		}
+
+		// 发送消息
+		// 动态添加聊天框
+		private void btn_send_Click(object sender, EventArgs e)
         {
             if (click_count == 1)
             {
@@ -54,7 +124,8 @@ namespace FakeQQ
             richTextBox_content.Clear();
             richTextBox_content.Focus();
             type = btn_type.text;
-        }//动态添加聊天框
+        }
+        // 设置头像框属性
         private void set_userAvatar(PictureBox userAvatar,Point location)
         {
             userAvatar.Size = new Size(30, 30);
@@ -77,7 +148,7 @@ namespace FakeQQ
                 message.ReadOnly = true;
 				// 发送消息
 				string str = textBox_content;
-				byte[] buffer = Encoding.Default.GetBytes(str);
+                byte[] buffer = Encoding.Default.GetBytes(str);
 				clientSocket.Send(buffer);
                 MessageBox.Show(textBox_content, "客户端发送消息");
 			}
@@ -99,19 +170,16 @@ namespace FakeQQ
             }
             
         }
-
-
         private void Message_ContentsResized(object sender, ContentsResizedEventArgs e)
         {
-            RichTextBox message= sender as RichTextBox;
-            message.Height=e.NewRectangle.Height;
-            init_location.Y+=message.Height;
+            RichTextBox message = sender as RichTextBox;
+            message.Height = e.NewRectangle.Height;
+            init_location.Y += message.Height;
             if (init_location.Y > messageArea.Height)
             {
-                init_location.Y =messageArea.Height+20;
+                init_location.Y = messageArea.Height + 20;
             }
         }
-
         private void richTextBox_content_TextChanged(object sender, EventArgs e)
         {
             textBox_content = richTextBox_content.Text;
@@ -125,65 +193,8 @@ namespace FakeQQ
                 btn_send.Enabled = true;
             }
         }
-        private void picture_close_Click(object sender, EventArgs e)
-        {
-            this.Close();  
-        }
 
-        private void picture_minus_Click(object sender, EventArgs e)
-        {
-            this.WindowState = FormWindowState.Minimized;
-        }
-
-        private void picture_minus_MouseMove(object sender, MouseEventArgs e)
-        {
-            picture_minus.BackColor= Color.Red;
-        }
-
-        private void picture_minus_MouseLeave(object sender, EventArgs e)
-        {
-            picture_minus.BackColor= Color.Transparent;
-        }
-
-        private void picture_close_MouseMove(object sender, MouseEventArgs e)
-        {
-            picture_close.BackColor= Color.Red;
-        }
-
-        private void picture_close_MouseLeave(object sender, EventArgs e)
-        {
-            picture_close.BackColor= Color.Transparent;
-        }
-        private Point mousepoint;
-        private Boolean leftflag = false;
-        //设置全局变量，用于记录鼠标位置和左键判断标志
-       
-
-        private void navigation_bar_MouseDown(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left)
-            {
-                mousepoint = e.Location;
-                leftflag = true;
-            }
-        }//  首先记下按下左键时的第一个鼠标位置
-
-        private void navigation_bar_MouseMove(object sender, MouseEventArgs e)
-        {
-            if (leftflag)
-            {
-                Left = MousePosition.X - mousepoint.X;
-                Top = MousePosition.Y - mousepoint.Y;
-            }
-        }//如果左键标志为真则移动窗体，且移动的位置为当前鼠标位置减去按下左键时第一个鼠标位置
-       
-
-        private void navigation_bar_MouseUp(object sender, MouseEventArgs e)
-        {
-            leftflag= false;
-        }//如果左键松开就不移动
-        private enum btn_type {text,document,emoji,image }//枚举按钮类型
-        btn_type type = btn_type.text;
+        // 发送文件
         private void picture_doc_Click(object sender, EventArgs e)
         {
             type= btn_type.document;
@@ -201,11 +212,13 @@ namespace FakeQQ
             }
         }
 
+        // 发送表情包
         private void picture_emoji_Click(object sender, EventArgs e)
         {
             type= btn_type.emoji;
         }
 
+        // 发送图片
         private void picture_image_Click(object sender, EventArgs e)
         {
             type = btn_type.image;
@@ -222,26 +235,9 @@ namespace FakeQQ
             }
         }
 
-		//连接服务器
-		private void ConnectServer()
+		// 连接服务器
+		private void LinkServer()
 		{
-			// 创建客户端套接字
-			clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			// 设置IP地址
-			IPAddress address = IPAddress.Parse("127.0.0.1");
-			// 设置IP地址和端口号
-			IPEndPoint endPoint = new IPEndPoint(address, 8088);
-			try
-			{
-				// 与服务器建立连接
-				clientSocket.Connect(endPoint);
-                MessageBox.Show("成功连接到服务器");
-			}
-			catch (Exception ex)
-			{
-				MessageBox.Show("连接失败：" + ex.Message, "友情提示");
-				return;
-			}
 			// 接收或发送消息 使用线程来实现
 			clientThread = new Thread(ReceiveMsg);
 			clientThread.IsBackground = true; //开启后台线程
