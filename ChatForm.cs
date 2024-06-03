@@ -13,16 +13,26 @@ namespace FakeQQ
 {
     public partial class ChatForm : Form
     {
-        List<string> qqEmojiList= new List<string>();//qq表情列表
-        private String qqEmojiURL;//qq表情链接
+        // qq表情列表
+        List<string> qqEmojiList= new List<string>();
+        // qq表情链接
+        private String qqEmojiURL;
         private String imageURL;
-        private Boolean is_changed = false;//判断用户输入是否改变
-        private Boolean is_checkd = false;//判断用户是否发送消息
-        private Boolean flag = false;//判断该消息是用户发送还是接收
-        private String textBox_content;//文本框的值
-        private Point init_location = new Point(0, 0);//初始位置
-        private int send_count = 1;//消息发送次数
-        private int recive_count = 1;// 消息接收次数
+        // 判断用户输入是否改变
+        private Boolean is_changed = false;
+        // 判断用户是否发送消息
+        private Boolean is_checkd = false;
+        // 判断该消息是用户发送还是接收
+        private Boolean flag = false;
+        // 文本框的值
+        private String textBox_content;
+        // 初始位置
+        private Point init_location = new Point(0, 0);
+        // 消息发送次数
+        private int send_count = 1;
+        // 消息接收次数
+        private int recive_count = 1;
+        // 按钮类型
         private enum btn_type
         {
             text, emoji, image, document
@@ -31,10 +41,9 @@ namespace FakeQQ
 		// 创建套接字
 		Socket clientSocket = null;
 		Thread clientThread = null;
+        // 窗体拖动参数
 		private Point mousepoint;
 		private Boolean leftflag = false;
-        List<Friends> friendsList = new List<Friends>();
-        int friendNumber = 0;
 
         // 接收传入的参数 
         private string firstMessage = "";
@@ -42,11 +51,7 @@ namespace FakeQQ
         private string receiveAccount = "";
         private string receiveUsername = "";
 
-		public ChatForm()
-        {
-            InitializeComponent();
-        }
-
+        // 主动打开窗体
 		public ChatForm(string sendAccount, string receiveAccount, string receiveUsername, Socket clientSocket)
 		{
 			InitializeComponent();
@@ -55,7 +60,7 @@ namespace FakeQQ
 			this.receiveAccount = receiveAccount;
 			this.receiveUsername = receiveUsername;
 		}
-
+        // 被动打开窗体
 		public ChatForm(string firstMessage, string sendAccount, string receiveAccount, string receiveUsername, Socket clientSocket)
         {
             InitializeComponent();
@@ -96,7 +101,7 @@ namespace FakeQQ
 			clientThread.Start();
 		}
 
-        // 关闭按钮
+        // 关闭和最小化按钮
         private void btn_close_Click(object sender, EventArgs e)
         {
             ListForm.chatFormStatus[receiveAccount] = false;
@@ -126,7 +131,6 @@ namespace FakeQQ
 		{
 			picture_close.BackColor = Color.Transparent;
 		}
-
 		// 窗体移动
 		private void navigation_bar_MouseDown(object sender, MouseEventArgs e)
 		{
@@ -257,6 +261,7 @@ namespace FakeQQ
                 }
             }  
         }
+        // 设置消息位置
         private void set_location(Control message)
         {
             if (flag)
@@ -268,7 +273,7 @@ namespace FakeQQ
                 message.Location = new Point(init_location.X - message.Width - 20, init_location.Y + 5);
             }
         }
-        
+        // 重设消息框大小
         private void Message_ContentsResized(object sender, ContentsResizedEventArgs e)
         {
             RichTextBox message = sender as RichTextBox;
@@ -279,6 +284,7 @@ namespace FakeQQ
                 init_location.Y = messageArea.Height + 20;
             }
         }
+        // 绑定修改文本事件
         private void richTextBox_content_TextChanged(object sender, EventArgs e)
         {
             is_checkd = false;
@@ -293,6 +299,7 @@ namespace FakeQQ
                 btn_send.Enabled = true;
             }
         }
+        // 组件添加事件
         private void richTextBox_content_ControlAdded(object sender, ControlEventArgs e)
         {
             is_checkd= false;
@@ -321,7 +328,7 @@ namespace FakeQQ
             }    
         }
 
-        // 发送表情包
+        // 打开表情包选择框
         private void picture_emoji_Click(object sender, EventArgs e)
         {
             type= btn_type.emoji;
@@ -344,7 +351,7 @@ namespace FakeQQ
                 QQEmojiArea.Controls.Add(qqEmoji);
             }
         }
-
+        // 选择表情包
         private void QqEmoji_Click(object sender, EventArgs e)
         {
             QQEmojiArea.VerticalScroll.Value = 0;
