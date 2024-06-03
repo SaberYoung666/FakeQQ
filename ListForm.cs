@@ -22,7 +22,7 @@ namespace FakeQQ
 		private Boolean leftflag = false;
 		List<Friends> friendsList = new List<Friends>();
         // 当前用户的qq号
-        string sendAccount = "";
+        string currentAccount = "";
         string name = "";
         // 连接服务器的套接字
 		Socket clientSocket = null;
@@ -30,6 +30,8 @@ namespace FakeQQ
         // 用户好友的数量
         int frendNumber = 0;
         Boolean responseStatus = false;
+        // 字典存放用户对话框打开状态
+        public static Dictionary<string, Boolean> chatFormStatus = new Dictionary<string, Boolean>();
 
 		public ListForm()
         {
@@ -39,7 +41,7 @@ namespace FakeQQ
         public ListForm(string account, string name, Socket clientSocket)
         {
             InitializeComponent();
-            this.sendAccount = account;
+            this.currentAccount = account;
             this.clientSocket = clientSocket;
             this.name = name;
         }
@@ -56,6 +58,11 @@ namespace FakeQQ
             // 初始化好友列表
             initializeFriendsList();
 
+            foreach (Friends friends in friendsList)
+            {
+                chatFormStatus[friends.account] = false;
+            }
+
             // 绘制窗体的圆角
             int hRgn = RoundCorner.CreateRoundRectRgn(0, 0, this.Width, this.Height, 20, 20);
             RoundCorner.SetWindowRgn(this.Handle, hRgn, true);
@@ -64,7 +71,7 @@ namespace FakeQQ
 
         private void initializeFriendsList()
         {
-			byte[] accountBuffer = Encoding.Default.GetBytes("[FLIN]" + sendAccount);
+			byte[] accountBuffer = Encoding.Default.GetBytes("[FLIN]" + currentAccount);
 			clientSocket.Send(accountBuffer);
             while (!responseStatus || friendsList.Count != frendNumber)
             {
@@ -141,9 +148,9 @@ namespace FakeQQ
                 receiveUsername = (sender as Label).Text;
 			}
 
-            ChatForm chatForm = new ChatForm(sendAccount, receiveAccount, receiveUsername, clientSocket);
-            chatForm.Show();
-        }
+			byte[] beginBuffer = Encoding.Default.GetBytes("[CHOP]" + receiveAccount);
+			clientSocket.Send(beginBuffer);
+		}
 
         // 最小化
         private void picture_minus_Click(object sender, EventArgs e)
@@ -210,7 +217,6 @@ namespace FakeQQ
 				}
 				catch (Exception ex)
 				{
-					MessageBox.Show("与服务器断开连接");
 					break;
 				}
 				// 解析消息
@@ -243,7 +249,42 @@ namespace FakeQQ
                                 clientSocket.Send(beginBuffer);
                             }
                             break;
-						default:
+                        case "REMG":
+                            // 被动打开对话窗体
+                            string receiveMessage = sArray[2];
+                            string sendAccount = sArray[4];
+                            string sendUsername = "";
+
+                            foreach (Friends friends in friendsList)
+                            {
+                                if (friends.account == sendAccount)
+                                {
+                                    sendUsername = friends.name;
+                                }
+                            }
+                            if (!chatFormStatus[sendAccount])
+                            {
+                                ChatForm passiveChatForm = new ChatForm(receiveMessage, currentAccount, sendAccount, sendUsername, clientSocket);
+                                passiveChatForm.ShowDialog();
+                                chatFormStatus[sendAccount] = true;
+                            }
+                            break;
+                        case "ALCH":
+                            // 主动打开对话窗体
+                            string chatAccount = msg;
+                            string chatUsername = "";
+							foreach (Friends friends in friendsList)
+							{
+								if (friends.account == chatAccount)
+								{
+									chatUsername = friends.name;
+								}
+							}
+							ChatForm activeChatForm = new ChatForm(currentAccount, chatAccount, chatUsername, clientSocket);
+							activeChatForm.ShowDialog();
+							chatFormStatus[chatAccount] = true;
+							break;
+                        default:
 							break;
 					}
 				}

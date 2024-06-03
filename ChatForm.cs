@@ -13,15 +13,26 @@ namespace FakeQQ
 {
     public partial class ChatForm : Form
     {
-        List<string> qqEmojiList= new List<string>();//qq表情列表
-        private String qqEmojiURL;//qq表情链接
+        // qq表情列表
+        List<string> qqEmojiList= new List<string>();
+        // qq表情链接
+        private String qqEmojiURL;
         private String imageURL;
-        private Boolean is_changed = false;//判断用户输入是否改变
-        private Boolean is_checkd = false;//判断用户是否发送消息
-        private Boolean flag = false;//判断该消息是用户发送还是接收
-        private String textBox_content;//文本框的值
-        private Point init_location = new Point(0, 0);//初始位置
-        private int click_count = 1;//消息发送次数
+        // 判断用户输入是否改变
+        private Boolean is_changed = false;
+        // 判断用户是否发送消息
+        private Boolean is_checkd = false;
+        // 判断该消息是用户发送还是接收
+        private Boolean flag = false;
+        // 文本框的值
+        private String textBox_content;
+        // 初始位置
+        private Point init_location = new Point(0, 0);
+        // 消息发送次数
+        private int send_count = 1;
+        // 消息接收次数
+        private int recive_count = 1;
+        // 按钮类型
         private enum btn_type
         {
             text, emoji, image, document
@@ -30,22 +41,30 @@ namespace FakeQQ
 		// 创建套接字
 		Socket clientSocket = null;
 		Thread clientThread = null;
+        // 窗体拖动参数
 		private Point mousepoint;
 		private Boolean leftflag = false;
 
         // 接收传入的参数 
+        private string firstMessage = "";
         private string sendAccount = "";
         private string receiveAccount = "";
         private string receiveUsername = "";
 
-		public ChatForm()
-        {
-            InitializeComponent();
-        }
-
+        // 主动打开窗体
 		public ChatForm(string sendAccount, string receiveAccount, string receiveUsername, Socket clientSocket)
+		{
+			InitializeComponent();
+			this.clientSocket = clientSocket;
+			this.sendAccount = sendAccount;
+			this.receiveAccount = receiveAccount;
+			this.receiveUsername = receiveUsername;
+		}
+        // 被动打开窗体
+		public ChatForm(string firstMessage, string sendAccount, string receiveAccount, string receiveUsername, Socket clientSocket)
         {
             InitializeComponent();
+            this.firstMessage = firstMessage;
             this.clientSocket = clientSocket;
             this.sendAccount = sendAccount;
             this.receiveAccount = receiveAccount;
@@ -58,7 +77,6 @@ namespace FakeQQ
 
             QQEmojiArea.Parent = this;
             QQEmojiArea.BringToFront();
-            ConnectServer();
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情1.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情2.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情3.jpg");
@@ -68,12 +86,25 @@ namespace FakeQQ
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情7.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情8.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情9.jpg");
-     
-        }
 
-        // 关闭按钮
+            if (!string.IsNullOrEmpty(firstMessage))
+            {
+                flag = true;
+                // 头像位置
+                send_count++;
+				addReciveMessage(firstMessage);
+            }
+
+			// 开启后台socket线程
+			clientThread = new Thread(ReceiveMsg);
+			clientThread.IsBackground = true;
+			clientThread.Start();
+		}
+
+        // 关闭和最小化按钮
         private void btn_close_Click(object sender, EventArgs e)
         {
+            ListForm.chatFormStatus[receiveAccount] = false;
             this.Close();
         }
 		private void picture_close_Click(object sender, EventArgs e)
@@ -100,7 +131,6 @@ namespace FakeQQ
 		{
 			picture_close.BackColor = Color.Transparent;
 		}
-
 		// 窗体移动
 		private void navigation_bar_MouseDown(object sender, MouseEventArgs e)
 		{
@@ -129,19 +159,12 @@ namespace FakeQQ
         {
             is_checkd = true;
             flag= false;
-            if (click_count == 1)
+            if (send_count == 1&&flag==false)
             {
-                if (flag)
-                {
-                    init_location = new Point(20, 20);
-                }
-                else
-                {
-                    init_location = new Point(this.Width - 50, 20);
-                }
-                // 头像位置
-            }
-            if (type == btn_type.text || type == btn_type.document)
+                init_location.Y = 20;
+			}
+            init_location.X=this.Width - 50;
+			if (type == btn_type.text || type == btn_type.document)
             {
                 PictureBox userAvatar = new PictureBox();
                 RichTextBox message = new RichTextBox();
@@ -163,7 +186,7 @@ namespace FakeQQ
                 messageArea.ScrollControlIntoView(userAvatar);
                 messageArea.ScrollControlIntoView(message);
             }
-            click_count +=1;
+            send_count +=1;
             richTextBox_content.Clear();
             richTextBox_content.Controls.Clear();
             richTextBox_content.Focus();
@@ -184,20 +207,24 @@ namespace FakeQQ
             if (type == btn_type.text)
             {
                 RichTextBox text_message = (RichTextBox)message;
-                text_message.Width = 200;
-                text_message.Text = textBox_content;
-                text_message.BackColor = Color.White;
+				if (!flag)
+				{
+					text_message.Text = textBox_content;
+					// 发送消息
+					string str = textBox_content;
+					if (!string.IsNullOrEmpty(str))
+					{
+						byte[] buffer = Encoding.Default.GetBytes("[SDMG]" + str + "[SDAC]" + sendAccount + "[REAC]" + receiveAccount);
+						clientSocket.Send(buffer);
+					}
+				}
+				text_message.Width = 200;
+				text_message.BackColor = Color.White;
                 text_message.BorderStyle = BorderStyle.None;
-                set_location(text_message);
-                text_message.ContentsResized += Message_ContentsResized;
-                text_message.ReadOnly = true;
-				// 发送消息
-				string str = textBox_content;
-                if (!string.IsNullOrEmpty(str))
-                {
-                    byte[] buffer = Encoding.Default.GetBytes("[SDAC]" + sendAccount + "[RCAC]" + receiveAccount + "[SDMG]" + str);
-				    clientSocket.Send(buffer);
-                }
+				text_message.ContentsResized += Message_ContentsResized;
+				set_location(text_message);
+				text_message.ReadOnly = true;
+                
 			}
             else if (type == btn_type.image)
             {
@@ -234,6 +261,7 @@ namespace FakeQQ
                 }
             }  
         }
+        // 设置消息位置
         private void set_location(Control message)
         {
             if (flag)
@@ -245,7 +273,7 @@ namespace FakeQQ
                 message.Location = new Point(init_location.X - message.Width - 20, init_location.Y + 5);
             }
         }
-        
+        // 重设消息框大小
         private void Message_ContentsResized(object sender, ContentsResizedEventArgs e)
         {
             RichTextBox message = sender as RichTextBox;
@@ -256,6 +284,7 @@ namespace FakeQQ
                 init_location.Y = messageArea.Height + 20;
             }
         }
+        // 绑定修改文本事件
         private void richTextBox_content_TextChanged(object sender, EventArgs e)
         {
             is_checkd = false;
@@ -270,6 +299,7 @@ namespace FakeQQ
                 btn_send.Enabled = true;
             }
         }
+        // 组件添加事件
         private void richTextBox_content_ControlAdded(object sender, ControlEventArgs e)
         {
             is_checkd= false;
@@ -298,7 +328,7 @@ namespace FakeQQ
             }    
         }
 
-        // 发送表情包
+        // 打开表情包选择框
         private void picture_emoji_Click(object sender, EventArgs e)
         {
             type= btn_type.emoji;
@@ -321,7 +351,7 @@ namespace FakeQQ
                 QQEmojiArea.Controls.Add(qqEmoji);
             }
         }
-
+        // 选择表情包
         private void QqEmoji_Click(object sender, EventArgs e)
         {
             QQEmojiArea.VerticalScroll.Value = 0;
@@ -353,9 +383,16 @@ namespace FakeQQ
             }
         }
 
+        // 添加接收消息框
         private void addReciveMessage(String reciveMessage)
         {
-            PictureBox userAvatar = new PictureBox();
+			flag = true;
+            if (send_count == 1&&is_checkd==false)
+            {
+                init_location.Y=20;
+            }
+            init_location.X=20;
+			PictureBox userAvatar = new PictureBox();
             RichTextBox recive_message= new RichTextBox();
             recive_message.Text= reciveMessage;
             set_userAvatar(userAvatar, init_location);
@@ -374,30 +411,6 @@ namespace FakeQQ
             }));
         }
 
-		//连接服务器
-		private void ConnectServer()
-		{
-			// 创建客户端套接字
-			clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-			// 设置IP地址
-			IPAddress address = IPAddress.Parse("127.0.1");
-			// 设置IP地址和端口号
-			IPEndPoint endPoint = new IPEndPoint(address, 8088);
-			try
-			{
-				// 与服务器建立连接
-				clientSocket.Connect(endPoint);
-			}
-			catch (Exception ex)
-			{
-				MessageBox.Show("连接失败：" + ex.Message, "友情提示");
-				return;
-			}
-			// 接收或发送消息 使用线程来实现
-			clientThread = new Thread(ReceiveMsg);
-			clientThread.IsBackground = true; //开启后台线程
-			clientThread.Start();
-		}
         // 客户端接收消息
 		private void ReceiveMsg()
 		{
@@ -411,20 +424,33 @@ namespace FakeQQ
 				}
 				catch (SocketException ex)
 				{
+                    MessageBox.Show(ex.Message,"1");
 					break;
 				}
 				catch (Exception ex)
 				{
-                    MessageBox.Show("与服务器断开连接");
+                    MessageBox.Show(ex.Message,"2");
 					break;
 				}
-				//接收到消息
+				// 接收到消息
 				if (length > 0)
 				{
-                    flag= true;
-					string msg = Encoding.Default.GetString(recBuffer, 0, length);//转译字符串(字符串，开始的索引，字符串长度)
-					string str = $"{DateTime.Now}【接收】{msg}{Environment.NewLine}";//接收的时间，内容，换行
-                    MessageBox.Show(str, "接收到的消息");
+					string originMsg = Encoding.Default.GetString(recBuffer, 0, length);
+					string[] sArray = originMsg.Split(new char[2] { '[', ']' });
+					string mark = sArray[1];
+					string msg = sArray[2];
+					switch (mark)
+					{
+						case "REMG":
+                            string receiveMessage = sArray[2];
+							this.Invoke(new Action(() =>
+							{
+								addReciveMessage(receiveMessage);
+							}));
+                            break;
+						default:
+							break;
+					}
 				}
 			}
 		}
