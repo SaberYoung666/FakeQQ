@@ -196,7 +196,7 @@ namespace FakeQQ
                 if (!string.IsNullOrEmpty(str))
                 {
                     byte[] buffer = Encoding.Default.GetBytes("[SDAC]" + sendAccount + "[RCAC]" + receiveAccount + "[SDMG]" + str);
-				    //clientSocket.Send(buffer);
+				    clientSocket.Send(buffer);
                 }
 			}
             else if (type == btn_type.image)
