@@ -21,7 +21,8 @@ namespace FakeQQ
         private Boolean flag = false;//判断该消息是用户发送还是接收
         private String textBox_content;//文本框的值
         private Point init_location = new Point(0, 0);//初始位置
-        private int click_count = 1;//消息发送次数
+        private int send_count = 1;//消息发送次数
+        private int recive_count = 1;// 消息接收次数
         private enum btn_type
         {
             text, emoji, image, document
@@ -36,6 +37,7 @@ namespace FakeQQ
         int friendNumber = 0;
 
         // 接收传入的参数 
+        private string firstMessage = "";
         private string sendAccount = "";
         private string receiveAccount = "";
         private string receiveUsername = "";
@@ -46,8 +48,18 @@ namespace FakeQQ
         }
 
 		public ChatForm(string sendAccount, string receiveAccount, string receiveUsername, Socket clientSocket)
+		{
+			InitializeComponent();
+			this.clientSocket = clientSocket;
+			this.sendAccount = sendAccount;
+			this.receiveAccount = receiveAccount;
+			this.receiveUsername = receiveUsername;
+		}
+
+		public ChatForm(string firstMessage, string sendAccount, string receiveAccount, string receiveUsername, Socket clientSocket)
         {
             InitializeComponent();
+            this.firstMessage = firstMessage;
             this.clientSocket = clientSocket;
             this.sendAccount = sendAccount;
             this.receiveAccount = receiveAccount;
@@ -69,12 +81,25 @@ namespace FakeQQ
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情7.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情8.jpg");
             qqEmojiList.Add(@"C:\Users\ASUS\Desktop\qq表情包\QQ表情9.jpg");
-     
-        }
+
+            if (!string.IsNullOrEmpty(firstMessage))
+            {
+                flag = true;
+                // 头像位置
+                send_count++;
+				addReciveMessage(firstMessage);
+            }
+
+			// 开启后台socket线程
+			clientThread = new Thread(ReceiveMsg);
+			clientThread.IsBackground = true;
+			clientThread.Start();
+		}
 
         // 关闭按钮
         private void btn_close_Click(object sender, EventArgs e)
         {
+            ListForm.chatFormStatus[receiveAccount] = false;
             this.Close();
         }
 		private void picture_close_Click(object sender, EventArgs e)
@@ -130,19 +155,12 @@ namespace FakeQQ
         {
             is_checkd = true;
             flag= false;
-            if (click_count == 1)
+            if (send_count == 1&&flag==false)
             {
-                if (flag)
-                {
-                    init_location = new Point(20, 20);
-                }
-                else
-                {
-                    init_location = new Point(this.Width - 50, 20);
-                }
-                // 头像位置
-            }
-            if (type == btn_type.text || type == btn_type.document)
+                init_location.Y = 20;
+			}
+            init_location.X=this.Width - 50;
+			if (type == btn_type.text || type == btn_type.document)
             {
                 PictureBox userAvatar = new PictureBox();
                 RichTextBox message = new RichTextBox();
@@ -164,7 +182,7 @@ namespace FakeQQ
                 messageArea.ScrollControlIntoView(userAvatar);
                 messageArea.ScrollControlIntoView(message);
             }
-            click_count +=1;
+            send_count +=1;
             richTextBox_content.Clear();
             richTextBox_content.Controls.Clear();
             richTextBox_content.Focus();
@@ -185,20 +203,24 @@ namespace FakeQQ
             if (type == btn_type.text)
             {
                 RichTextBox text_message = (RichTextBox)message;
-                text_message.Width = 200;
-                text_message.Text = textBox_content;
-                text_message.BackColor = Color.White;
+				if (!flag)
+				{
+					text_message.Text = textBox_content;
+					// 发送消息
+					string str = textBox_content;
+					if (!string.IsNullOrEmpty(str))
+					{
+						byte[] buffer = Encoding.Default.GetBytes("[SDMG]" + str + "[SDAC]" + sendAccount + "[REAC]" + receiveAccount);
+						clientSocket.Send(buffer);
+					}
+				}
+				text_message.Width = 200;
+				text_message.BackColor = Color.White;
                 text_message.BorderStyle = BorderStyle.None;
-                set_location(text_message);
-                text_message.ContentsResized += Message_ContentsResized;
-                text_message.ReadOnly = true;
-				// 发送消息
-				string str = textBox_content;
-                if (!string.IsNullOrEmpty(str))
-                {
-                    byte[] buffer = Encoding.Default.GetBytes("[SDMG]" + str + "[SDAC]" + sendAccount + "[REAC]" + receiveAccount);
-				    clientSocket.Send(buffer);
-                }
+				text_message.ContentsResized += Message_ContentsResized;
+				set_location(text_message);
+				text_message.ReadOnly = true;
+                
 			}
             else if (type == btn_type.image)
             {
@@ -354,9 +376,16 @@ namespace FakeQQ
             }
         }
 
+        // 添加接收消息框
         private void addReciveMessage(String reciveMessage)
         {
-            PictureBox userAvatar = new PictureBox();
+			flag = true;
+            if (send_count == 1&&is_checkd==false)
+            {
+                init_location.Y=20;
+            }
+            init_location.X=20;
+			PictureBox userAvatar = new PictureBox();
             RichTextBox recive_message= new RichTextBox();
             recive_message.Text= reciveMessage;
             set_userAvatar(userAvatar, init_location);
@@ -388,11 +417,12 @@ namespace FakeQQ
 				}
 				catch (SocketException ex)
 				{
+                    MessageBox.Show(ex.Message,"1");
 					break;
 				}
 				catch (Exception ex)
 				{
-                    MessageBox.Show("与服务器断开连接");
+                    MessageBox.Show(ex.Message,"2");
 					break;
 				}
 				// 接收到消息
@@ -405,19 +435,12 @@ namespace FakeQQ
 					switch (mark)
 					{
 						case "REMG":
-				            
-							break;
-						case "FLAC":
-							string account = sArray[2];
-							string username = sArray[4];
-							string onlineStatus = sArray[6];
-							friendsList.Add(new Friends(account, username, Properties.Resources.logo, Convert.ToBoolean(onlineStatus)));
-							if (friendsList.Count != friendNumber)
+                            string receiveMessage = sArray[2];
+							this.Invoke(new Action(() =>
 							{
-								byte[] beginBuffer = Encoding.Default.GetBytes("[FLNT]" + friendsList.Count);
-								clientSocket.Send(beginBuffer);
-							}
-							break;
+								addReciveMessage(receiveMessage);
+							}));
+                            break;
 						default:
 							break;
 					}
